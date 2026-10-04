@@ -19,6 +19,24 @@ function cleanText(value: unknown, max: number) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+function parsePayload(body: unknown, eventBody?: unknown) {
+  const value = body ?? eventBody;
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object'
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 function withCors(response: ReturnType<typeof json>) {
   return {
     ...response,
@@ -76,8 +94,8 @@ export const handler = router({
   ],
 
   'POST /api/admin/verify': [
-    async ({ body }) => {
-      const payload = (body ?? {}) as Record<string, unknown>;
+    async ({ body, event }) => {
+      const payload = parsePayload(body, event?.body);
       const status = await adminStatus(payload.adminPin);
       if (!status.configured) {
         return fail('وضع الإدارة لسه محتاج PIN يتحدد من صاحب اللعبة.', 503);
@@ -88,8 +106,8 @@ export const handler = router({
   ],
 
   'POST /api/memories': [
-    async ({ body }) => {
-      const payload = (body ?? {}) as Record<string, unknown>;
+    async ({ body, event }) => {
+      const payload = parsePayload(body, event?.body);
       const status = await adminStatus(payload.adminPin);
       if (!status.configured) {
         return fail('وضع الإدارة لسه مش متجهز.', 503);
@@ -130,9 +148,9 @@ export const handler = router({
     },
   ],
 
-  'DELETE /api/memories/:id': [
-    async ({ params, body }) => {
-      const payload = (body ?? {}) as Record<string, unknown>;
+  'POST /api/memories/:id/delete': [
+    async ({ params, body, event }) => {
+      const payload = parsePayload(body, event?.body);
       const status = await adminStatus(payload.adminPin);
       if (!status.configured) {
         return fail('وضع الإدارة لسه مش متجهز.', 503);
