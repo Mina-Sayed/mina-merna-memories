@@ -51,7 +51,7 @@
     "viewport": "desktop",
     "covers": [
       "shared memory backend POST",
-      "shared memory backend DELETE",
+      "shared memory backend authorized delete action",
       "admin authorization"
     ],
     "description": "يتأكد أن المدير الموثق يقدر يضيف ويحذف الذكريات.",
