@@ -471,7 +471,10 @@ export function AdminModal({
             Admin PIN
             <input
               type="password"
-              inputMode="numeric"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoComplete="off"
               value={pin}
               onChange={event => setPin(event.target.value)}
