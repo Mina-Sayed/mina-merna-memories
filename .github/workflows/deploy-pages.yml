@@ -33,7 +33,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_API_BASE_URL: https://mina-mirna-our-little-universe-rz3z8x.v2.appdeploy.ai
+          VITE_API_BASE_URL: https://api-v2.appdeploy.ai/app/mina-mirna-our-little-universe-rz3z8x
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
