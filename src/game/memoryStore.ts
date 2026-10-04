@@ -36,8 +36,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function listSharedMemories() {
-  const data = await request<MemoriesResponse>('/api/memories');
-  return data.memories;
+  const data = await request<unknown>('/api/memories');
+  if (
+    data &&
+    typeof data === 'object' &&
+    'memories' in data &&
+    Array.isArray((data as MemoriesResponse).memories)
+  ) {
+    return (data as MemoriesResponse).memories;
+  }
+
+  if (
+    data &&
+    typeof data === 'object' &&
+    'data' in data &&
+    (data as { data?: unknown }).data &&
+    typeof (data as { data?: unknown }).data === 'object'
+  ) {
+    const nested = (data as { data: MemoriesResponse }).data;
+    if (Array.isArray(nested.memories)) return nested.memories;
+  }
+
+  throw new Error('رد الذكريات من السيرفر غير متوقع.');
 }
 
 export async function verifyAdminPin(adminPin: string) {
