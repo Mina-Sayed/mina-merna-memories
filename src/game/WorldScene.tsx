@@ -6,6 +6,7 @@ import type { Memory } from '../config/loveStory';
 import type { SharedMemory } from './memoryStore';
 
 export type Movement = { x: number; z: number };
+type QualityTier = 'low' | 'mobile' | 'desktop';
 
 type SceneProps = {
   movement: MutableRefObject<Movement>;
@@ -18,12 +19,31 @@ type SceneProps = {
   onSharedMemory: (memory: SharedMemory) => void;
 };
 
+function detectQuality(): QualityTier {
+  if (typeof window === 'undefined') return 'desktop';
+
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const mobile =
+    window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 820;
+
+  if (!mobile) return 'desktop';
+
+  const cores = nav.hardwareConcurrency ?? 8;
+  const memory = nav.deviceMemory ?? 8;
+
+  if (cores <= 4 || memory <= 4) return 'low';
+  return 'mobile';
+}
+
 function memoryPosition(index: number): [number, number, number] {
   const angle = (index / 7) * Math.PI * 2;
   return [Math.cos(angle) * 4.2, 1.35, Math.sin(angle) * 4.2];
 }
 
-function sharedMemoryPosition(index: number, total: number): [number, number, number] {
+function sharedMemoryPosition(
+  index: number,
+  total: number
+): [number, number, number] {
   const perRing = 10;
   const ring = Math.floor(index / perRing);
   const ringStart = ring * perRing;
@@ -31,108 +51,251 @@ function sharedMemoryPosition(index: number, total: number): [number, number, nu
   const localIndex = index - ringStart;
   const angle = (localIndex / ringCount) * Math.PI * 2 + ring * 0.26;
   const radius = 2.5 + ring * 0.58;
-  return [Math.cos(angle) * radius, 1.05 + ring * 0.08, Math.sin(angle) * radius];
+  return [
+    Math.cos(angle) * radius,
+    1.05 + ring * 0.08,
+    Math.sin(angle) * radius,
+  ];
 }
 
 function Tree() {
   return (
     <group position={[-3.2, 0.6, -1.4]}>
-      <mesh castShadow>
+      <mesh>
         <cylinderGeometry args={[0.24, 0.4, 2.2, 8]} />
-        <meshStandardMaterial color="#4b2f40" roughness={0.85} />
+        <meshStandardMaterial color='#4b2f40' roughness={0.85} />
       </mesh>
-      {[[-0.8, 2.1, 0], [0.6, 2.4, 0.1], [0, 2.8, -0.2], [0.8, 1.9, -0.2]].map((p, i) => (
-        <mesh key={i} position={p as [number, number, number]}>
+      {[
+        [-0.8, 2.1, 0],
+        [0.6, 2.4, 0.1],
+        [0, 2.8, -0.2],
+        [0.8, 1.9, -0.2],
+      ].map((position, index) => (
+        <mesh
+          key={index}
+          position={position as [number, number, number]}
+        >
           <icosahedronGeometry args={[0.9, 1]} />
-          <meshStandardMaterial color="#725489" emissive="#3f245e" emissiveIntensity={0.45} roughness={0.75} />
+          <meshStandardMaterial
+            color='#725489'
+            emissive='#3f245e'
+            emissiveIntensity={0.45}
+            roughness={0.75}
+          />
         </mesh>
       ))}
     </group>
   );
 }
 
-function Lake() {
+function Lake({ simple }: { simple: boolean }) {
   return (
     <group position={[3.2, 0.06, 1.3]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[2.25, 48]} />
-        <meshPhysicalMaterial color="#263e65" metalness={0.12} roughness={0.2} transparent opacity={0.78} />
+        <circleGeometry args={[2.25, simple ? 28 : 48]} />
+        {simple ? (
+          <meshStandardMaterial
+            color='#263e65'
+            roughness={0.28}
+            transparent
+            opacity={0.82}
+          />
+        ) : (
+          <meshPhysicalMaterial
+            color='#263e65'
+            metalness={0.12}
+            roughness={0.2}
+            transparent
+            opacity={0.78}
+          />
+        )}
       </mesh>
-      <pointLight position={[0, 1.2, 0]} intensity={1.2} distance={6} color="#c2d8ff" />
+      {!simple && (
+        <pointLight
+          position={[0, 1.2, 0]}
+          intensity={1.05}
+          distance={6}
+          color='#c2d8ff'
+        />
+      )}
     </group>
   );
 }
 
-function Observatory({ unlocked }: { unlocked: boolean }) {
+function Observatory({
+  unlocked,
+  simple,
+}: {
+  unlocked: boolean;
+  simple: boolean;
+}) {
   return (
     <group position={[0, 0.5, -5.8]}>
       <mesh>
-        <cylinderGeometry args={[1.8, 2.1, 0.55, 24]} />
-        <meshStandardMaterial color={unlocked ? '#7b6a97' : '#29273a'} emissive={unlocked ? '#7d659f' : '#000000'} emissiveIntensity={unlocked ? 0.4 : 0} />
+        <cylinderGeometry args={[1.8, 2.1, 0.55, simple ? 16 : 24]} />
+        <meshStandardMaterial
+          color={unlocked ? '#7b6a97' : '#29273a'}
+          emissive={unlocked ? '#7d659f' : '#000000'}
+          emissiveIntensity={unlocked ? 0.4 : 0}
+        />
       </mesh>
       <mesh position={[0, 1.35, 0]}>
-        <sphereGeometry args={[1.45, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshPhysicalMaterial color="#a7c5df" transparent opacity={unlocked ? 0.19 : 0.08} roughness={0.05} transmission={0.3} />
+        <sphereGeometry
+          args={[
+            1.45,
+            simple ? 16 : 24,
+            simple ? 10 : 14,
+            0,
+            Math.PI * 2,
+            0,
+            Math.PI / 2,
+          ]}
+        />
+        {simple ? (
+          <meshStandardMaterial
+            color='#a7c5df'
+            transparent
+            opacity={unlocked ? 0.17 : 0.07}
+          />
+        ) : (
+          <meshPhysicalMaterial
+            color='#a7c5df'
+            transparent
+            opacity={unlocked ? 0.19 : 0.08}
+            roughness={0.05}
+            transmission={0.3}
+          />
+        )}
       </mesh>
     </group>
   );
 }
 
-function MemoryOrb({ index, onTake }: { index: number; onTake: () => void }) {
+function Fireflies({
+  count,
+  animate,
+}: {
+  count: number;
+  animate: boolean;
+}) {
+  const points = useRef<THREE.Points>(null);
+  const positions = useMemo(() => {
+    const values = new Float32Array(count * 3);
+    for (let index = 0; index < count; index += 1) {
+      const angle = (index / count) * Math.PI * 2;
+      const radius = 1.5 + ((index * 17) % 40) / 10;
+      values[index * 3] = Math.cos(angle) * radius;
+      values[index * 3 + 1] = 0.65 + ((index * 11) % 12) / 10;
+      values[index * 3 + 2] = Math.sin(angle) * radius;
+    }
+    return values;
+  }, [count]);
+
+  useFrame((_, delta) => {
+    if (animate && points.current) {
+      points.current.rotation.y += delta * 0.025;
+    }
+  });
+
+  return (
+    <points ref={points}>
+      <bufferGeometry>
+        <bufferAttribute attach='attributes-position' args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        color='#ffe0a0'
+        size={0.075}
+        transparent
+        opacity={0.84}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+function MemoryOrb({
+  index,
+  animate,
+  onTake,
+}: {
+  index: number;
+  animate: boolean;
+  onTake: () => void;
+}) {
   const position = memoryPosition(index);
   const take = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     onTake();
   };
 
-  return (
-    <Float speed={1.25} rotationIntensity={0.25} floatIntensity={0.65}>
-      <group position={position} onPointerDown={take}>
-        <mesh scale={0.5}>
-          <octahedronGeometry args={[0.6, 0]} />
-          <meshStandardMaterial color="#ffe6a7" emissive="#ffc76f" emissiveIntensity={2.5} />
-        </mesh>
-        <mesh scale={1.15}>
-          <sphereGeometry args={[0.7, 12, 12]} />
-          <meshBasicMaterial transparent opacity={0.001} depthWrite={false} />
-        </mesh>
-        <pointLight intensity={2.2} distance={3.8} color="#ffd78c" />
-      </group>
+  const content = (
+    <group position={position} onPointerDown={take}>
+      <mesh scale={0.5}>
+        <octahedronGeometry args={[0.6, 0]} />
+        <meshStandardMaterial
+          color='#ffe6a7'
+          emissive='#ffc76f'
+          emissiveIntensity={2.5}
+        />
+      </mesh>
+      <mesh scale={1.15}>
+        <sphereGeometry args={[0.7, 10, 10]} />
+        <meshBasicMaterial transparent opacity={0.001} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+
+  return animate ? (
+    <Float speed={1.1} rotationIntensity={0.2} floatIntensity={0.5}>
+      {content}
     </Float>
+  ) : (
+    content
   );
 }
 
 function SharedMemoryOrb({
   index,
   total,
+  animate,
   onOpen,
 }: {
   index: number;
   total: number;
+  animate: boolean;
   onOpen: () => void;
 }) {
   const position = sharedMemoryPosition(index, total);
+  const content = (
+    <group
+      position={position}
+      onPointerDown={event => {
+        event.stopPropagation();
+        onOpen();
+      }}
+    >
+      <mesh scale={0.42}>
+        <octahedronGeometry args={[0.62, 0]} />
+        <meshStandardMaterial
+          color='#ffc6dc'
+          emissive='#d75a96'
+          emissiveIntensity={2.2}
+        />
+      </mesh>
+      <mesh scale={1.25}>
+        <sphereGeometry args={[0.65, 10, 10]} />
+        <meshBasicMaterial transparent opacity={0.001} depthWrite={false} />
+      </mesh>
+    </group>
+  );
 
-  return (
-    <Float speed={1.1} rotationIntensity={0.35} floatIntensity={0.55}>
-      <group
-        position={position}
-        onPointerDown={event => {
-          event.stopPropagation();
-          onOpen();
-        }}
-      >
-        <mesh scale={0.42}>
-          <octahedronGeometry args={[0.62, 0]} />
-          <meshStandardMaterial color="#ffc6dc" emissive="#d75a96" emissiveIntensity={2.2} />
-        </mesh>
-        <mesh scale={1.25}>
-          <sphereGeometry args={[0.65, 12, 12]} />
-          <meshBasicMaterial transparent opacity={0.001} depthWrite={false} />
-        </mesh>
-        <pointLight intensity={1.7} distance={3.2} color="#ff9fc9" />
-      </group>
+  return animate ? (
+    <Float speed={1} rotationIntensity={0.25} floatIntensity={0.42}>
+      {content}
     </Float>
+  ) : (
+    content
   );
 }
 
@@ -145,26 +308,34 @@ function CollectedConstellation({
 }) {
   return (
     <group position={[0, 5.2, -2.6]}>
-      {[...collected].map((id, i) => {
-        const x = (i - 3) * 0.42;
-        const y = Math.sin(i * 1.8) * 0.35;
-        return (
-          <mesh key={id} position={[x, y, 0]}>
-            <sphereGeometry args={[0.07, 8, 8]} />
-            <meshBasicMaterial color="#ffe6a7" />
-          </mesh>
-        );
-      })}
-      {[...sharedCollected].slice(0, 16).map((id, i) => {
-        const x = ((i % 8) - 3.5) * 0.31;
-        const y = 0.72 + Math.floor(i / 8) * 0.25 + Math.sin(i * 1.4) * 0.08;
-        return (
-          <mesh key={id} position={[x, y, 0]}>
-            <sphereGeometry args={[0.055, 8, 8]} />
-            <meshBasicMaterial color="#ffc0d8" />
-          </mesh>
-        );
-      })}
+      {[...collected].map((id, index) => (
+        <mesh
+          key={id}
+          position={[
+            (index - 3) * 0.42,
+            Math.sin(index * 1.8) * 0.35,
+            0,
+          ]}
+        >
+          <sphereGeometry args={[0.07, 7, 7]} />
+          <meshBasicMaterial color='#ffe6a7' />
+        </mesh>
+      ))}
+      {[...sharedCollected].slice(0, 16).map((id, index) => (
+        <mesh
+          key={id}
+          position={[
+            ((index % 8) - 3.5) * 0.31,
+            0.72 +
+              Math.floor(index / 8) * 0.25 +
+              Math.sin(index * 1.4) * 0.08,
+            0,
+          ]}
+        >
+          <sphereGeometry args={[0.055, 7, 7]} />
+          <meshBasicMaterial color='#ffc0d8' />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -189,15 +360,36 @@ function Player({
   const avatar = useRef<THREE.Group>(null);
   const nearby = useRef(new Set<number>());
   const sharedNearby = useRef(new Set<string>());
+  const cameraDesired = useRef(new THREE.Vector3());
   const { camera } = useThree();
+
+  const memoryPositions = useMemo(
+    () => memories.map((_, index) => memoryPosition(index)),
+    [memories]
+  );
+  const sharedPositions = useMemo(
+    () =>
+      sharedMemories.map((_, index) =>
+        sharedMemoryPosition(index, sharedMemories.length)
+      ),
+    [sharedMemories]
+  );
 
   useFrame((_, delta) => {
     const group = avatar.current;
     if (!group) return;
 
     const speed = 2.6 * Math.min(delta, 0.05);
-    group.position.x = THREE.MathUtils.clamp(group.position.x + movement.current.x * speed, -5.4, 5.4);
-    group.position.z = THREE.MathUtils.clamp(group.position.z + movement.current.z * speed, -5.3, 5.3);
+    group.position.x = THREE.MathUtils.clamp(
+      group.position.x + movement.current.x * speed,
+      -5.4,
+      5.4
+    );
+    group.position.z = THREE.MathUtils.clamp(
+      group.position.z + movement.current.z * speed,
+      -5.3,
+      5.3
+    );
 
     if (Math.abs(movement.current.x) + Math.abs(movement.current.z) > 0.1) {
       group.rotation.y = Math.atan2(movement.current.x, movement.current.z);
@@ -205,105 +397,135 @@ function Player({
 
     memories.forEach((memory, index) => {
       if (collected.has(memory.id)) return;
-      const [x, , z] = memoryPosition(index);
-      const distance = Math.hypot(group.position.x - x, group.position.z - z);
-      if (distance < 0.82 && !nearby.current.has(memory.id)) {
+      const [x, , z] = memoryPositions[index];
+      const dx = group.position.x - x;
+      const dz = group.position.z - z;
+      const distanceSquared = dx * dx + dz * dz;
+      if (distanceSquared < 0.6724 && !nearby.current.has(memory.id)) {
         nearby.current.add(memory.id);
         onNearMemory(memory);
-      } else if (distance > 1.25) {
+      } else if (distanceSquared > 1.5625) {
         nearby.current.delete(memory.id);
       }
     });
 
     sharedMemories.forEach((memory, index) => {
       if (sharedCollected.has(memory.id)) return;
-      const [x, , z] = sharedMemoryPosition(index, sharedMemories.length);
-      const distance = Math.hypot(group.position.x - x, group.position.z - z);
-      if (distance < 0.84 && !sharedNearby.current.has(memory.id)) {
+      const [x, , z] = sharedPositions[index];
+      const dx = group.position.x - x;
+      const dz = group.position.z - z;
+      const distanceSquared = dx * dx + dz * dz;
+      if (
+        distanceSquared < 0.7056 &&
+        !sharedNearby.current.has(memory.id)
+      ) {
         sharedNearby.current.add(memory.id);
         onNearSharedMemory(memory);
-      } else if (distance > 1.3) {
+      } else if (distanceSquared > 1.69) {
         sharedNearby.current.delete(memory.id);
       }
     });
 
-    const desired = new THREE.Vector3(group.position.x, 4.4, group.position.z + 7.2);
-    camera.position.lerp(desired, 0.05);
+    cameraDesired.current.set(
+      group.position.x,
+      4.4,
+      group.position.z + 7.2
+    );
+    camera.position.lerp(cameraDesired.current, 0.05);
     camera.lookAt(group.position.x, 0.9, group.position.z - 0.8);
   });
 
   return (
     <group ref={avatar} position={[0, 0.7, 2.8]}>
-      <mesh castShadow>
-        <capsuleGeometry args={[0.34, 0.76, 6, 12]} />
-        <meshStandardMaterial color="#f0c6c9" roughness={0.75} />
+      <mesh>
+        <capsuleGeometry args={[0.34, 0.76, 5, 10]} />
+        <meshStandardMaterial color='#f0c6c9' roughness={0.75} />
       </mesh>
       <mesh position={[0, 0.9, 0]}>
-        <sphereGeometry args={[0.31, 18, 18]} />
-        <meshStandardMaterial color="#f5d5c5" />
+        <sphereGeometry args={[0.31, 14, 14]} />
+        <meshStandardMaterial color='#f5d5c5' />
       </mesh>
       <mesh position={[0, 0.98, -0.13]} scale={[1.08, 0.9, 0.55]}>
-        <sphereGeometry args={[0.33, 16, 16]} />
-        <meshStandardMaterial color="#2b202b" roughness={0.95} />
+        <sphereGeometry args={[0.33, 12, 12]} />
+        <meshStandardMaterial color='#2b202b' roughness={0.95} />
       </mesh>
-      <pointLight position={[0, 1.2, 0]} intensity={0.8} distance={2.2} color="#ffdca1" />
     </group>
   );
 }
 
-function IslandScene(props: SceneProps) {
-  const fireflies = useMemo(
-    () =>
-      Array.from({ length: 34 }, (_, i) => {
-        const a = (i / 34) * Math.PI * 2;
-        const r = 1.5 + ((i * 17) % 40) / 10;
-        return [Math.cos(a) * r, 0.65 + ((i * 11) % 12) / 10, Math.sin(a) * r] as [number, number, number];
-      }),
-    []
-  );
+function IslandScene({
+  quality,
+  ...props
+}: SceneProps & { quality: QualityTier }) {
+  const simple = quality !== 'desktop';
+  const low = quality === 'low';
+  const starCount = low ? 280 : simple ? 500 : 850;
+  const fireflyCount = low ? 10 : simple ? 16 : 28;
+  const animateOrbs = !low;
 
   return (
     <>
-      <fog attach="fog" args={['#080818', 8, 20]} />
-      <ambientLight intensity={0.58} color="#a7b6ff" />
-      <directionalLight position={[4, 8, 4]} intensity={1.1} color="#dfe9ff" />
-      <pointLight position={[-3, 3, -2]} intensity={1.6} distance={8} color="#d8a6ff" />
-      <Stars radius={55} depth={25} count={900} factor={2.6} saturation={0.18} fade speed={0.45} />
-      <mesh position={[0, -0.45, 0]} receiveShadow>
-        <cylinderGeometry args={[6.2, 5.1, 1.3, 32]} />
-        <meshStandardMaterial color="#152b2b" roughness={0.92} />
+      <fog attach='fog' args={['#080818', 8, 20]} />
+      <ambientLight intensity={0.62} color='#a7b6ff' />
+      <directionalLight
+        position={[4, 8, 4]}
+        intensity={1}
+        color='#dfe9ff'
+      />
+      {!low && (
+        <pointLight
+          position={[-3, 3, -2]}
+          intensity={1.2}
+          distance={8}
+          color='#d8a6ff'
+        />
+      )}
+      <Stars
+        radius={55}
+        depth={25}
+        count={starCount}
+        factor={simple ? 2.2 : 2.6}
+        saturation={0.18}
+        fade
+        speed={low ? 0.08 : 0.35}
+      />
+
+      <mesh position={[0, -0.45, 0]}>
+        <cylinderGeometry args={[6.2, 5.1, 1.3, simple ? 22 : 32]} />
+        <meshStandardMaterial color='#152b2b' roughness={0.92} />
       </mesh>
       <mesh position={[0, -1.1, 0]}>
-        <coneGeometry args={[5.2, 3.2, 12]} />
-        <meshStandardMaterial color="#161626" roughness={1} />
+        <coneGeometry args={[5.2, 3.2, simple ? 9 : 12]} />
+        <meshStandardMaterial color='#161626' roughness={1} />
       </mesh>
 
       <Tree />
-      <Lake />
-      <Observatory unlocked={props.finaleUnlocked} />
-      <CollectedConstellation collected={props.collected} sharedCollected={props.sharedCollected} />
+      <Lake simple={simple} />
+      <Observatory unlocked={props.finaleUnlocked} simple={simple} />
+      <CollectedConstellation
+        collected={props.collected}
+        sharedCollected={props.sharedCollected}
+      />
+      <Fireflies count={fireflyCount} animate={!low} />
 
-      {fireflies.map((p, i) => (
-        <Float key={i} speed={0.8 + (i % 3) * 0.2} floatIntensity={0.35}>
-          <mesh position={p} scale={0.035 + (i % 3) * 0.01}>
-            <sphereGeometry args={[1, 8, 8]} />
-            <meshBasicMaterial color={i % 4 === 0 ? '#f4b7cf' : '#ffe6a2'} />
-          </mesh>
-        </Float>
-      ))}
-
-      {props.memories.map((memory, i) =>
+      {props.memories.map((memory, index) =>
         props.collected.has(memory.id) ? null : (
-          <MemoryOrb key={memory.id} index={i} onTake={() => props.onMemory(memory)} />
+          <MemoryOrb
+            key={memory.id}
+            index={index}
+            animate={animateOrbs}
+            onTake={() => props.onMemory(memory)}
+          />
         )
       )}
 
-      {props.sharedMemories.map((memory, i) =>
+      {props.sharedMemories.map((memory, index) =>
         props.sharedCollected.has(memory.id) ? null : (
           <SharedMemoryOrb
             key={memory.id}
-            index={i}
+            index={index}
             total={props.sharedMemories.length}
+            animate={animateOrbs}
             onOpen={() => props.onSharedMemory(memory)}
           />
         )
@@ -323,9 +545,24 @@ function IslandScene(props: SceneProps) {
 }
 
 export default function WorldScene(props: SceneProps) {
+  const quality = useMemo(detectQuality, []);
+
   return (
-    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 4.5, 8.5], fov: 50 }} gl={{ antialias: true, powerPreference: 'high-performance' }}>
-      <IslandScene {...props} />
+    <Canvas
+      dpr={
+        quality === 'low'
+          ? 1
+          : quality === 'mobile'
+            ? [1, 1.15]
+            : [1, 1.4]
+      }
+      camera={{ position: [0, 4.5, 8.5], fov: 50 }}
+      gl={{
+        antialias: quality === 'desktop',
+        powerPreference: 'high-performance',
+      }}
+    >
+      <IslandScene {...props} quality={quality} />
     </Canvas>
   );
 }
