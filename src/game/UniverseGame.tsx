@@ -85,7 +85,12 @@ export default function UniverseGame() {
   const [collected, setCollected] = useState<Set<number>>(() => {
     try {
       const raw = localStorage.getItem('mm-collected');
-      return new Set<number>(raw ? (JSON.parse(raw) as number[]) : []);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return new Set<number>(
+        Array.isArray(parsed)
+          ? parsed.filter((value): value is number => typeof value === 'number')
+          : []
+      );
     } catch {
       return new Set<number>();
     }
@@ -93,7 +98,12 @@ export default function UniverseGame() {
   const [sharedCollected, setSharedCollected] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem('mm-shared-collected');
-      return new Set<string>(raw ? (JSON.parse(raw) as string[]) : []);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return new Set<string>(
+        Array.isArray(parsed)
+          ? parsed.filter((value): value is string => typeof value === 'string')
+          : []
+      );
     } catch {
       return new Set<string>();
     }
@@ -108,9 +118,10 @@ export default function UniverseGame() {
     setMemoryError('');
     try {
       const memories = await listSharedMemories();
-      setSharedMemories(memories);
+      const safeMemories = Array.isArray(memories) ? memories : [];
+      setSharedMemories(safeMemories);
       setSharedCollected(currentSet => {
-        const validIds = new Set(memories.map(memory => memory.id));
+        const validIds = new Set(safeMemories.map(memory => memory.id));
         return new Set([...currentSet].filter(id => validIds.has(id)));
       });
     } catch {
