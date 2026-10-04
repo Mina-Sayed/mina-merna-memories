@@ -15,13 +15,7 @@ const API_BASE =
   '';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
+  const response = await fetch(`${API_BASE}${path}`, init);
 
   const data = (await response.json().catch(() => ({}))) as Record<
     string,
@@ -49,15 +43,17 @@ export async function listSharedMemories() {
 export async function verifyAdminPin(adminPin: string) {
   await request<{ authenticated: boolean }>('/api/admin/verify', {
     method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ adminPin }),
   });
 }
 
 export async function deleteSharedMemory(id: string, adminPin: string) {
   await request<{ deleted: boolean }>(
-    `/api/memories/${encodeURIComponent(id)}`,
+    `/api/memories/${encodeURIComponent(id)}/delete`,
     {
-      method: 'DELETE',
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ adminPin }),
     }
   );
@@ -125,6 +121,7 @@ export async function createSharedMemory(
 ) {
   const data = await request<CreateMemoryResponse>('/api/memories', {
     method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ ...input, adminPin }),
   });
   return data.memory;
