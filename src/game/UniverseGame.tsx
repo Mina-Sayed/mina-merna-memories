@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { loveStory, type Memory } from '../config/loveStory';
 import {
   createSharedMemory,
@@ -8,7 +8,7 @@ import {
   verifyAdminPin,
   type SharedMemory,
 } from './memoryStore';
-import WorldScene, { type Movement } from './WorldScene';
+import type { Movement } from './WorldScene';
 import {
   AdminModal,
   CatchStars,
@@ -23,6 +23,8 @@ import {
   PauseMenu,
   SharedMemoryModal,
 } from './ui';
+
+const WorldScene = lazy(() => import('./WorldScene'));
 
 type Overlay =
   | 'memory'
@@ -297,16 +299,25 @@ export default function UniverseGame() {
     <main className="game-shell" dir="rtl">
       <div className="world-layer">
         {webgl ? (
-          <WorldScene
-            movement={movement}
-            collected={collected}
-            sharedCollected={sharedCollected}
-            memories={loveStory.memories}
-            sharedMemories={sharedMemories}
-            finaleUnlocked={finaleUnlocked}
-            onMemory={openMemory}
-            onSharedMemory={openSharedMemory}
-          />
+          <Suspense
+            fallback={
+              <div className='world-loading'>
+                <div className='world-loading-star'>✦</div>
+                <span>بنجهّز عالمنا…</span>
+              </div>
+            }
+          >
+            <WorldScene
+              movement={movement}
+              collected={collected}
+              sharedCollected={sharedCollected}
+              memories={loveStory.memories}
+              sharedMemories={sharedMemories}
+              finaleUnlocked={finaleUnlocked}
+              onMemory={openMemory}
+              onSharedMemory={openSharedMemory}
+            />
+          </Suspense>
         ) : (
           <div className="fallback-world">
             <div className="fallback-moon" />
