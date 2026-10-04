@@ -1,0 +1,83 @@
+[
+  {
+    "name": "الزائر يلعب ويجمع من غير أدوات الإدارة",
+    "sanity": true,
+    "viewport": "mobile",
+    "covers": [
+      "public gameplay",
+      "shared memory collection",
+      "admin controls hidden"
+    ],
+    "description": "يتأكد أن الزائر يقدر يلعب ويجمع الذكريات بينما الإضافة والحذف مش ظاهرين.",
+    "steps": [
+      "ادخل العالم",
+      "افتح القائمة ثم ذكرياتنا",
+      "راجع أدوات المعرض"
+    ],
+    "expected": "اللعبة تعمل ولا يظهر للزائر زر إضافة ذكرى أو حذف."
+  },
+  {
+    "name": "Admin PIN يفتح وضع الإدارة",
+    "viewport": "desktop",
+    "covers": [
+      "admin PIN backend verification",
+      "admin mode UI"
+    ],
+    "description": "يتأكد أن الـPIN الصحيح يفتح أدوات الإدارة بعد تحقق السيرفر.",
+    "steps": [
+      "ادخل العالم وافتح القائمة",
+      "اضغط وضع الإدارة",
+      "اكتب Admin PIN الصحيح وأكد"
+    ],
+    "expected": "تظهر أدوات إضافة وحذف الذكريات في الجلسة الحالية."
+  },
+  {
+    "name": "PIN خاطئ لا يعطي صلاحيات",
+    "viewport": "mobile",
+    "covers": [
+      "admin PIN rejection",
+      "unauthorized mutation guardrail"
+    ],
+    "description": "يتأكد أن PIN غير صحيح لا يفتح الإدارة.",
+    "steps": [
+      "افتح وضع الإدارة",
+      "اكتب PIN غير صحيح",
+      "أكد"
+    ],
+    "expected": "تظهر رسالة خطأ وتظل أدوات الإدارة مخفية."
+  },
+  {
+    "name": "المدير يضيف ويحذف ذكرى",
+    "viewport": "desktop",
+    "covers": [
+      "shared memory backend POST",
+      "shared memory backend DELETE",
+      "admin authorization"
+    ],
+    "description": "يتأكد أن المدير الموثق يقدر يضيف ويحذف الذكريات.",
+    "steps": [
+      "افتح وضع الإدارة بالـPIN الصحيح",
+      "أضف ذكرى اختبار",
+      "احذفها من ذكرياتنا مع التأكيد"
+    ],
+    "expected": "تظهر الذكرى بعد الإضافة ثم تختفي بعد الحذف."
+  },
+  {
+    "name": "جمع الذكريات لا يحتاج Admin",
+    "viewport": "mobile",
+    "covers": [
+      "shared memory proximity collection",
+      "local collection persistence"
+    ],
+    "description": "يتأكد أن وضع الإدارة لا يؤثر على اللعب.",
+    "setup": [
+      "توجد ذكرى مشتركة واحدة على الأقل"
+    ],
+    "steps": [
+      "ادخل كزائر",
+      "اقترب من النجمة الوردية",
+      "اضغط احتفظي بالذكرى"
+    ],
+    "expected": "تتجمع الذكرى وتختفي نجمتها من الأرض بدون Admin Mode."
+  }
+]
